@@ -4,7 +4,14 @@ Semua perubahan penting pada source extension publik dicatat di sini.
 
 ## Unreleased
 
-Belum ada perubahan extension yang dirilis setelah v1.0.1.
+Belum ada perubahan extension yang dirilis setelah v1.0.2.
+
+## [1.0.2] - 2026-09-14
+
+### Fixed
+- Regenerate seluruh icon extension dari master logo final untuk memperbaiki asset `icon128.png` yang tampil rusak pada GitHub.
+- Menyamakan kembali icon 16, 32, 48, dan 128 px dari sumber master yang sama.
+- Tidak ada perubahan pada alur akses, OCR, PDF, atau community activation.
 
 ## [1.0.1] - 2026-09-14
 
