@@ -4,7 +4,15 @@ Semua perubahan penting pada source extension publik dicatat di sini.
 
 ## Unreleased
 
-Belum ada perubahan extension yang dirilis setelah v1.0.0.
+Belum ada perubahan extension yang dirilis setelah v1.0.1.
+
+## [1.0.1] - 2026-09-14
+
+### Changed
+- Mengganti seluruh icon extension dengan identitas visual buku monokrom BMP Terbuka.
+- Menampilkan logo baru pada popup dan halaman informasi extension.
+- Menambahkan logo resmi ke README repository publik.
+- Tidak ada perubahan pada alur akses, OCR, PDF, atau community activation.
 
 ## [1.0.0] - 2026-09-13
 

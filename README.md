@@ -1,6 +1,10 @@
-# BMP Terbuka
+<p align="center">
+  <img src="extension/icons/icon128.png" width="170" alt="BMP Terbuka">
+</p>
 
-> **Materi yang dapat kamu akses, lebih nyaman untuk kamu pelajari.**
+<h1 align="center">BMP Terbuka</h1>
+
+<p align="center"><strong>Materi yang dapat kamu akses, lebih nyaman untuk kamu pelajari.</strong></p>
 
 BMP Terbuka adalah extension Chrome komunitas yang membantu pengguna mengubah materi BMP yang **sudah dapat mereka akses dengan akun mereka sendiri** menjadi **searchable PDF** untuk belajar pribadi/offline.
 
