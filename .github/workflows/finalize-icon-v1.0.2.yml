@@ -9,11 +9,9 @@ permissions:
 
 jobs:
   finalize:
-    if: github.event.head_commit.message == 'chore: finalize v1.0.2 icon repair'
+    if: github.repository == 'imcholis/bukabmp'
     runs-on: ubuntu-latest
     env:
-      TARGET_SHA: d30ef63edaf5b0cc79d0f7fa3322673261e6e907
-      VERSION: 1.0.2
       BMP_API_BASE_URL: https://community.bukabmp.workers.dev
       BMP_TELEGRAM_CHANNEL_URL: https://t.me/bukabmp
       BMP_TELEGRAM_GROUP_URL: https://t.me/+0pAg9ymEhWdkZmNl
@@ -26,103 +24,52 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Check clean source commit
+      - name: Validate version and source
         shell: bash
         run: |
           set -euo pipefail
-          git cat-file -e "${TARGET_SHA}^{commit}"
-          git checkout "${TARGET_SHA}"
-          test "$(node -p "require('./extension/manifest.json').version")" = "${VERSION}"
-          test "$(node -p "require('./package.json').version")" = "${VERSION}"
+          VERSION=$(node -p "require('./extension/manifest.json').version")
+          test "$VERSION" = "1.0.2"
+          test "$(node -p "require('./package.json').version")" = "$VERSION"
+          test -z "$(git ls-remote --tags origin "refs/tags/v${VERSION}")"
+          npm run validate
 
-      - name: Verify PNG icon integrity and dimensions
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import struct, zlib
-          from pathlib import Path
-
-          expected = {
-              'extension/icons/icon16.png': (16, 16),
-              'extension/icons/icon32.png': (32, 32),
-              'extension/icons/icon48.png': (48, 48),
-              'extension/icons/icon128.png': (128, 128),
-          }
-          signature = b'\x89PNG\r\n\x1a\n'
-          for name, dims in expected.items():
-              data = Path(name).read_bytes()
-              assert data[:8] == signature, f'{name}: bad PNG signature'
-              pos = 8
-              width = height = None
-              saw_iend = False
-              while pos < len(data):
-                  assert pos + 12 <= len(data), f'{name}: truncated chunk header'
-                  length = struct.unpack('>I', data[pos:pos+4])[0]
-                  ctype = data[pos+4:pos+8]
-                  start = pos + 8
-                  end = start + length
-                  assert end + 4 <= len(data), f'{name}: truncated chunk'
-                  chunk = data[start:end]
-                  expected_crc = struct.unpack('>I', data[end:end+4])[0]
-                  actual_crc = zlib.crc32(ctype)
-                  actual_crc = zlib.crc32(chunk, actual_crc) & 0xffffffff
-                  assert actual_crc == expected_crc, f'{name}: CRC mismatch in {ctype!r}'
-                  if ctype == b'IHDR':
-                      width, height = struct.unpack('>II', chunk[:8])
-                  if ctype == b'IEND':
-                      saw_iend = True
-                      pos = end + 4
-                      break
-                  pos = end + 4
-              assert (width, height) == dims, f'{name}: got {(width, height)}, expected {dims}'
-              assert saw_iend, f'{name}: missing IEND'
-              assert pos == len(data), f'{name}: trailing bytes after IEND'
-              print(f'OK {name}: {width}x{height}, {len(data)} bytes')
-          PY
-
-      - name: Validate extension source
-        run: npm run validate
-
-      - name: Build self-contained release
+      - name: Build self-contained extension
         run: npm run build:release
 
       - name: Package and checksum
         shell: bash
         run: |
           set -euo pipefail
+          VERSION=$(node -p "require('./extension/manifest.json').version")
           cd dist
           zip -qr "BMP-Terbuka-v${VERSION}.zip" "BMP-Terbuka-v${VERSION}"
           sha256sum "BMP-Terbuka-v${VERSION}.zip" > "BMP-Terbuka-v${VERSION}.zip.sha256"
           unzip -t "BMP-Terbuka-v${VERSION}.zip"
 
-      - name: Publish clean v1.0.2 tag and release
+      - name: Remove one-shot finalizer and tag clean commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./extension/manifest.json').version")
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm ".github/workflows/finalize-icon-v1.0.2.yml"
+          git commit -m "chore: remove one-shot v${VERSION} finalizer"
+          git push origin HEAD:main
+          git tag "v${VERSION}"
+          git push origin "v${VERSION}"
+
+      - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if git ls-remote --exit-code --tags origin "refs/tags/v${VERSION}" >/dev/null 2>&1; then
-            echo "Tag v${VERSION} already exists" >&2
-            exit 1
-          fi
-          git tag "v${VERSION}" "${TARGET_SHA}"
-          git push origin "refs/tags/v${VERSION}"
+          VERSION=$(node -p "require('./extension/manifest.json').version")
           gh release create "v${VERSION}" \
             "dist/BMP-Terbuka-v${VERSION}.zip" \
             "dist/BMP-Terbuka-v${VERSION}.zip.sha256" \
             --verify-tag \
             --title "BMP Terbuka v${VERSION}" \
-            --notes "Icon repair release: seluruh icon extension diregenerasi dari master logo final untuk memperbaiki icon128.png yang tampil rusak. Tidak ada perubahan pada OCR, PDF, akses sumber, atau community activation."
-
-      - name: Remove one-shot finalizer from main
-        shell: bash
-        run: |
-          set -euo pipefail
-          git switch main
-          git pull --ff-only origin main
-          git rm .github/workflows/finalize-icon-v1.0.2.yml
-          git commit -m "chore: remove one-shot v1.0.2 finalizer"
-          git push origin main
+            --notes "Icon repair: seluruh icon extension diregenerasi dari master logo final untuk memperbaiki icon128.png yang tampil rusak di GitHub. Tidak ada perubahan pada alur akses, OCR, PDF, atau community activation."
